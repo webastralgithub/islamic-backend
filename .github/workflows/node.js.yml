@@ -35,6 +35,8 @@ jobs:
         username: develop
         KEY: ${{ secrets.KEY }}
         port: 7872
-        script:
+        script: |
           cd /home/develop/islamic-backend
-          ls -al
+          git pull origin master
+          npm install
+          pm2 restart server.js
