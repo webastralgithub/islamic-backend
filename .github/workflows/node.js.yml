@@ -37,6 +37,4 @@ jobs:
         port: 7872
         script:
           cd /home/develop/islamic-backend
-          git pull origin master
-          npm install
-          pm2 restart server.js
+          ls -al
