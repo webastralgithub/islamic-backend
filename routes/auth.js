@@ -26,7 +26,7 @@ router.get('/edit/:_id',verified,UserController.editProfile);
 router.patch('/update/:_id',verified,UserController.updateProfile);
 router.patch('/updateUserImage/:_id',verified,UserController.updateUserImage);
 router.get('/checkToken/:token',UserController.checkResetToken);
-router.get('/testapi',(req.res)=>{
+router.get('/testapi',(req,res)=>{
 res.send('hy I am here');
 });
 
