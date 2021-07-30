@@ -39,7 +39,7 @@ jobs:
       uses: appleboy/scp-action@master
       with:
         host: islamic.nvinfobase.com
-        username: develop
+        username: root
         KEY: ${{ secrets.KEY }}
         port: 7872
         source: "dist/admin-example/*"
