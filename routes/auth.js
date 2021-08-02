@@ -28,7 +28,7 @@ router.patch('/updateUserImage/:_id',verified,UserController.updateUserImage);
 router.get('/checkToken/:token',UserController.checkResetToken);
 router.get('/testapi',(req,res) => {
     console.log('tttttt');
-    res.send('heyuyyyyishan12dg');
+    res.send('heyuyyyyishan12shivam');
 })
 
 
