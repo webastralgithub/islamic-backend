@@ -12,6 +12,14 @@ const JournalSchema = new mongoose.Schema({
         required:true,
         min:4,
     },
+    text_color:{
+        type:String,
+        required:true,
+    },
+    user_id:{
+        type:String,
+        required:true,
+    },
     created_at:{
         type:Date,
        default:Date.now

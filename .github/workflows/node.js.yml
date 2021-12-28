@@ -1,0 +1,42 @@
+name: Deploy to Production Server
+
+on:
+  push:
+    branches:
+    - master
+
+jobs:
+  deploy:
+    env:
+      CI: false
+
+    name: Deploy build files to server
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Use Node.js v14
+      uses: actions/setup-node@v1
+      with:
+        node-version: '14.x'
+
+    - uses: actions/cache@v2
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+      
+    - name: Copy files to server
+      uses: appleboy/ssh-action@master
+      with:
+        host: islamic.nvinfobase.com
+        username: root
+        KEY: ${{ secrets.KEY }}
+        port: 7872
+        script: |
+          cd /home/develop/islamic-backend
+          git pull origin master
+          npm install
+          pm2 restart server.js

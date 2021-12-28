@@ -18,7 +18,8 @@ let mailOptions = {
     from: 'brianacarrillo37@gmail.com',
     to: to,
     subject: subject,
-    html: message
+    html: message,
+
 };
 
 transporter.sendMail(mailOptions, (error, info) => {
@@ -28,3 +29,35 @@ transporter.sendMail(mailOptions, (error, info) => {
     console.log('success');
 });
 }
+
+exports.sendFeedbackFunction = (to,subject,message,filename) =>{
+    let transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false,
+        requireTLS: true,
+        auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMPTP_PASSWPRD
+        }
+    });
+    
+    // return transporter;
+    let mailOptions = {
+        from: 'brianacarrillo37@gmail.com',
+        to: to,
+        subject: subject,
+        html: message,
+        attachments: [
+            {name:filename,path:`http://112.196.64.119:8000/feedback/${filename}`}
+        ],
+    
+    };
+    
+    transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+            return console.log(error.message);
+        }
+        console.log('success');
+    });
+    }

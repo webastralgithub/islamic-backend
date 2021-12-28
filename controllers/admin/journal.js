@@ -1,12 +1,17 @@
 const express = require('express')
 const Journal = require("../../models/Journal");
 const { journalValidation } = require("../../validation");
-
+const jwt = require("jsonwebtoken");
 
 exports.journal = async (req, res) => {
 
     try {
-        const JournalList = await Journal.find();
+        var authorization = req.header('auth-token');
+        if (authorization) {
+        var decoded = jwt.verify(authorization, process.env.TOKEN_SECRET);
+        var userId = decoded._id;
+        }
+        const JournalList = await Journal.find({user_id:userId});
         res.status(200).json(({data:JournalList,msg:"Journal listed Successfully."}));
     } catch (error) {
         res.status(400).send(error);
@@ -21,10 +26,16 @@ exports.create = async (req, res) => {
     console.log(error);
 
     if (error) return res.status(400).json({error:error.details[0].message});
-
+    var authorization = req.header('auth-token');
+    if (authorization) {
+    var decoded = jwt.verify(authorization, process.env.TOKEN_SECRET);
+    var userId = decoded._id;
+    }
     const journal = new Journal({
         title:req.body.title,
-        description:req.body.description
+        description:req.body.description,
+        text_color:req.body.text_color,
+        user_id:userId
     });
 
 
@@ -66,6 +77,7 @@ exports.updateJournal = (req,res) =>{
     Journal.findByIdAndUpdate(req.params._id, {
         title: req.body.title || false,
         description: req.body.description || false,
+        text_color:req.body.text_color || false
     }, {new: true})
     .then(journal => {
         if(!journal) {

@@ -19,7 +19,7 @@ app.use(express.json());
 exports.UserList = async (req, res) => {
 
     try {
-        const UserList = await User.find();
+        const UserList = await User.find({user_role:'user'});
         // res.send(UserList);
         res.status(200).json(({data:UserList,msg:"User listed Successfully."}));
     } catch (error) {
@@ -39,6 +39,7 @@ exports.login = async (req, res) => {
     const user = await User.findOne({ email: req.body.email });
   
     if (!user) return res.status(400).json({msg:"Email or password is not correct"});
+    if (user.user_role === 'user') return res.status(400).json({msg:"You are not allowed to logged in here."});
   
     const valid_password = bcrypt.compareSync(req.body.password, user.password);
   
@@ -54,15 +55,13 @@ exports.login = async (req, res) => {
 
   exports.changeStatus = async (req,res) =>{
 
-    if(!req.body.status) {
-        return res.status(400).send({
-            message: "status can not be empty"
-        });
-    }
+    const checkStatus = await User.findOne({ _id: req.params._id });
+    // console.log(checkStatus.status);
+    var status = checkStatus.status == false ? true :false;
 
     // Find note and update it with the request body
     User.findByIdAndUpdate(req.params._id, {
-        status: req.body.status || false
+        status: status || false
     }, {new: true})
     .then(user => {
         if(!user) {
@@ -70,7 +69,7 @@ exports.login = async (req, res) => {
                 message: "User not found with id " + req.params._id
             });
         }
-        res.send(user);
+        res.json({user:'user status changed'});
     }).catch(err => {
         if(err.kind === 'ObjectId') {
             return res.status(404).send({

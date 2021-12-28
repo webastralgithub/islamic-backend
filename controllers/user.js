@@ -1,5 +1,6 @@
 const express = require('express')
 const User = require("../models/User");
+const Nafs = require("../models/Nafs");
 const verified = require("../routes/verify-token");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
@@ -20,9 +21,9 @@ exports.UserList = async (req, res) => {
     try {
         const UserList = await User.find();
         // res.send(UserList);
-        res.status(200).json(({data:UserList,msg:"User listed Successfully."}));
+        return res.status(200).json(({data:UserList,msg:"User listed Successfully."}));
     } catch (error) {
-        res.status(400).send(error);
+      return res.status(400).json(error);
     }
      
 };
@@ -31,11 +32,11 @@ exports.registerUser = async (req, res) => {
 
     const { error } = registrationvalidation(req.body);
 
-    if (error) return res.status(400).send(error.details[0].message);
+    if (error) return res.status(400).json(error.details[0].message);
 
     const emailExist = await User.findOne({ email: req.body.email });
 
-    if (emailExist) return res.status(400).send("Email already Exists");
+    if (emailExist) return res.status(200).json({msg:"Email already Exists"});
 
     // Hash Password
 
@@ -44,30 +45,33 @@ exports.registerUser = async (req, res) => {
         email: req.body.email,
         gender: req.body.gender,
         user_role: req.body.user_role,
-        token: req.body.token,
+        token: 'null',
         mobile_number: req.body.mobile_number,
         birthday:req.body.birthday,
         password: req.body.password,
         resetPasswordExpires:'null',
         resetPasswordToken:'',
+        profile_image:'',
+        address:req.body.address
     });
-
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(req.body.password, salt);
 
     try {
         const saveduser = await user.save();
-        res.status(200).json(({data:saveduser,msg:"User Registered Successfully."}));
+        return res.status(200).json(({data:saveduser,msg:"User Registered Successfully."}));
     } catch (error) {
-        res.status(400).send(error);
+      return res.status(400).json(error);
     }
 };
 
 exports.login = async (req, res) => {
 
+  // return res.json('heyyy I am here');
+
   const { error } = loginValidation(req.body);
 
-  if (error) return res.status(400).send(error.details[0].message);
+  if (error) return res.status(400).json(error.details[0].message);
 
   const user = await User.findOne({ email: req.body.email });
 
@@ -75,12 +79,13 @@ exports.login = async (req, res) => {
 
   const valid_password = bcrypt.compareSync(req.body.password, user.password);
 
-  if (!valid_password) return res.status(400).send("Incorrect Password");
+  if (!valid_password) return res.status(400).json({msg:"Password is incorrect."});
 
   // Create token
 
   const token = jwt.sign({ _id: user._id,role:user.user_role }, process.env.TOKEN_SECRET);
-  res.header("auth-token", token).json({auth_token:token,msg:"Login successfully"});
+  // res.header("auth-token", token).json({auth_token:token,msg:"Login successfully"});
+  return res.status(200).json({auth_token:token,msg:"Login successfully"});
 
   
 };
@@ -90,10 +95,6 @@ exports.resetPassword = async (req, res) => {
   const salt = await bcrypt.genSalt(10);
   const hasedPassword = await bcrypt.hash(req.body.new_password, salt);
   const user = await User.findOne({ _id: req.params._id });
-  // const valid_password = bcrypt.compareSync(req.body.current_password, user.password);
-  // if (!valid_password) return res.status(400).json({msg:"Incorrect Password"});
-
-  // console.log(valid_password);return;
 
   try {
     if (req.body.new_password === req.body.confirm_password) {
@@ -101,12 +102,12 @@ exports.resetPassword = async (req, res) => {
         { _id: req.params._id },
         { $set: { password: hasedPassword } }
       );
-      res.json({data:updatedUser,msg:"Password Reset Successfull"});
+      return res.json({data:updatedUser,msg:"Password Reset Successfull"});
     } else {
-      res.status(400).json({msg:"Password Not Matched!!"});
+      return res.status(400).json({msg:"Password Not Matched!!"});
     }
   } catch (error) {
-    res.status(400).send(error);
+    return res.status(400).json(error);
   }
 
 };
@@ -120,12 +121,12 @@ exports.createPin = async (req, res) => {
         { $set: { token: req.body.token } }
       );
 
-      res.json({data:updatedToken,msg:"token created successfully"});
+      return res.json({data:updatedToken,msg:"token created successfully"});
     } else {
-      res.json({msg:"Token Not matched"});
+      return res.json({msg:"Token Not matched"});
     }
   } catch (error) {
-    res.status(400).send(error);
+    return res.status(400).json(error);
   }
 
 };
@@ -133,17 +134,15 @@ exports.createPin = async (req, res) => {
 exports.loginByPin = async (req, res) => {
 
     const pinExist = await User.findOne({ token: req.body.token });
-
+ 
     try {
         if (pinExist) {
-        //   res.json({"msg": "Hey You logged in!!",'status':200});
-          res.status(200).json(({msg:"Hey You logged in!!"}));
+          return res.status(200).json(({msg:"Hey You logged in!!"}));
         } else {
-        //   res.send("Token Not matched");
-          res.status(400).json(({msg:"Token Not matched !"}));
+          return res.status(400).json(({msg:"Token Not matched !"}));
         }
       } catch (error) {
-        res.status(400).send(error);
+        return res.status(400).json(error);
       }
 }
 
@@ -151,7 +150,6 @@ exports.loginByPin = async (req, res) => {
 exports.forgetPassword = async (req, res) => {
 
     const emailExist = await User.findOne({ email: req.body.email });
-    // console.log(emailExist._id);
 
     if (!emailExist) return res.status(400).json({msg: "Email not found in db"});
 
@@ -165,12 +163,11 @@ exports.forgetPassword = async (req, res) => {
           }
         }
       );
-    console.log(update);
-    const Link = "<a href='http://112.196.64.119:4200/reset/?id="+ emailExist._id +"&&token=" + token + "'>Click Here</a>";
+    const Link = "<a href='http://islamic.nvinfobase.com/#/reset/?id="+ emailExist._id +"&&token=" + token + "'>Click Here</a>";
     const message = 'Please click on the following link,'  + Link + ' or paste this into your browser to complete the process:\n\n' 
     'If you did not request this, please ignore this email and your password will remain unchanged.\n';
     transporter.sendMailFunction(req.body.email,'Reset Password Link',message);
-    res.status(200).json({msg:"reset link send successfully"});
+    return res.status(200).json({msg:"reset link send successfully"});
 
 }
 
@@ -180,36 +177,33 @@ exports.me = async (req,res) => {
   if (authorization) {
       try {
           var decoded = jwt.verify(authorization, process.env.TOKEN_SECRET);
-          console.log(decoded);
       } catch (e) {
-          return res.status(401).send('unauthorized');
+          console.log(e);
+          return res.status(401).json('unauthorized');
       }
       var userId = decoded._id;
-      // Fetch the user by id 
      const user = await User.findOne({ _id: userId });
-     res.status(200).json(user);
+     return res.status(200).json(user);
   }
-  return res.send('Server Error');
+  return res.json('Server Error');
 
 }
 
 exports.editProfile = async (req,res) => {
 
   const user = await User.findOne({ _id: req.params._id });
-  res.status(200).json(user);
+  return res.status(200).json(({data:user,msg:"User data Successfully."}));
 }
 
 exports.updateProfile = async (req,res) => {
 
   try {
       const updatedUser =  await User.findByIdAndUpdate(req.params._id, req.body, { new: true });
-      console.log(updatedUser);
-      res.json(updatedUser);
+      return res.json({data:updatedUser,msg:"User updated successfully"});
    
   } catch (error) {
-    res.status(400).send(error);
+    return res.status(400).json(error);
   }
-  
 }
 
 
@@ -229,16 +223,23 @@ var upload = multer({
 
 upload(req, res, function(err) {
   if (err) {
-      console.log(err);
-      return res.end('Error');
+      return res.json(err);
   } else {
-      console.log(req.body);
-      req.files.forEach(function(item) {
-          console.log(item);
-          // move your file to destination
+    
+      req.files.forEach( async function(item) {
+        
+          const updatedUser = await User.updateOne(
+            { _id: req.params._id },
+            { $set: { profile_image: item.originalname} }
+          );
+          if(updatedUser) 
+          {
+            return res.status(200).json({msg:"User profile uploaded"})
+          }else{
+            return res.status(500).json({msg:"Image not upload"})
+          }
       });
-      // res.end('File uploaded');
-      res.status(200).json({msg:"File uploaded"})
+      
   }
 });
   
@@ -248,15 +249,13 @@ exports.checkResetToken = async (req,res) => {
 
   const user = await User.findOne({ resetPasswordToken: req.params.token });
   const currentTime = Date.now();
-  // const msg;
   const DbTime = user.resetPasswordExpires;
-  // console.log(user.resetPasswordExpires);
   if(DbTime < currentTime){
     const msg = false;
-    res.status(200).json(msg)
+    return res.status(200).json(msg)
   }else{
     const msg = true;
-    res.status(200).json(msg)
+    return res.status(200).json(msg)
   }
   
 }
@@ -269,8 +268,6 @@ exports.chnagePassword = async (req, res) => {
   const valid_password = bcrypt.compareSync(req.body.current_password, user.password);
   if (!valid_password) return res.status(400).json({msg:"Incorrect Password"});
 
-  // console.log(valid_password);return;
-
   try {
     if (req.body.new_password === req.body.confirm_password) {
       const updatedUser = await User.updateOne(
@@ -279,10 +276,10 @@ exports.chnagePassword = async (req, res) => {
       );
       res.json({data:updatedUser,msg:"Password changed Successfull"});
     } else {
-      res.status(400).json({msg:"Password Not Matched!!"});
+      return res.status(400).json({msg:"Password Not Matched!!"});
     }
   } catch (error) {
-    res.status(400).send(error);
+    return res.status(400).json(error);
   }
 
 };
@@ -290,7 +287,6 @@ exports.chnagePassword = async (req, res) => {
 exports.forgetPin = async (req, res) => {
 
   const emailExist = await User.findOne({ email: req.body.email });
-  // console.log(emailExist._id);
 
   if (!emailExist) return res.status(400).json({msg: "Email not found in db"});
 
@@ -304,12 +300,11 @@ exports.forgetPin = async (req, res) => {
         }
       }
     );
-  console.log(update);
-  const Link = "<a href='http://112.196.64.119:4200/reset-pin/?id="+ emailExist._id +"&&token=" + token + "'>Click Here</a>";
+  const Link = "<a href='http://islamic.nvinfobase.com/#/reset-pin/?id="+ emailExist._id +"&&token=" + token + "'>Click Here</a>";
   const message = 'Please click on the following link,'  + Link + ' or paste this into your browser to complete the process:\n\n' 
   'If you did not request this, please ignore this email and your pin will remain unchanged.\n';
   transporter.sendMailFunction(req.body.email,'Reset Pin Link',message);
-  res.status(200).json({msg:"Reset Pin link send successfully"});
+  return res.status(200).json({msg:"Reset Pin link send successfully"});
 
 }
 
@@ -322,12 +317,117 @@ exports.resetPin = async (req, res) => {
         { $set: { token: req.body.new_token } }
       );
 
-      res.json({data:updatedToken,msg:"Pin reset successfully",new_token:req.body.new_token,confirm_token:req.body.confirm_token});
+      return res.json({data:updatedToken,msg:"Pin reset successfully",new_token:req.body.new_token,confirm_token:req.body.confirm_token});
     } else {
-      res.status(400).json({msg:"Pin Not matched"});
+      return res.status(400).json({msg:"Pin Not matched"});
     }
   } catch (error) {
-    res.status(400).send(error);
+    return res.status(400).json(error);
   }
 
 };
+
+exports.changePin = async (req, res) => {
+
+
+  const user = await User.findOne({ _id: req.params._id });
+  var validPin = req.body.old_pin == user.token ? true:false;
+  if (!validPin) return res.status(400).json({msg:"Incorrect Pin"});
+  try {
+    if (req.body.token === req.body.confirm_token) {
+      const updatedToken = await User.updateOne(
+        { _id: req.params._id },
+        { $set: { token: req.body.token } }
+      );
+
+      return res.json({data:updatedToken,msg:"token changed successfully"});
+    } else {
+      return res.json({msg:"Token Not matched"});
+    }
+  } catch (error) {
+    return res.status(400).json(error);
+  }
+
+};
+
+exports.contactUs = (req,res) => {
+
+  const subject = 'Contact Us';
+  const message = `<p><b>Name:</b> ${req.body.name}</p> 
+  <p><b>Email:</b> ${req.body.email}</p> 
+  <p><b>Subject:</b> ${req.body.subject}</p> 
+  <p><b>Message:</b> ${req.body.message}</p> 
+  `;
+  transporter.sendMailFunction(req.body.email,subject,message);
+  return res.json({msg:"Mail send successfully."});
+}
+
+exports.feedback = (req,res) => {
+
+  
+var storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+            cb(null, './uploads/feedback');
+          },
+          filename: function (req, file, cb) {
+            cb(null, file.originalname);
+        }
+});
+var upload = multer({
+  storage: storage
+}).any();
+
+upload(req, res, function(err) {
+  if (err) {
+      return res.json(err);
+  } else {
+    const filename = req.files[0].originalname;
+  const subject = 'Feedback';
+  const message = `
+  <p><b>Subject:</b> ${req.body.subject}</p> 
+  <p><b>Message:</b> ${req.body.message}</p> 
+  `;
+  transporter.sendFeedbackFunction('developer1607@gmail.com',subject,message,filename);
+  return res.json({msg:"Mail send successfully."});
+      
+  }
+});
+
+}
+
+
+exports.createNafs = async(req,res) => {
+  try {
+    
+    const nafs = new Nafs({
+      name:req.body.name,
+      description:req.body.description,
+    });
+
+    const saveNafs = await nafs.save();
+    return res.status(200).json({data:saveNafs,msg:"Nafs save successfully"})
+
+  } catch (error) {
+  return res.json(error);
+    
+  }
+}
+
+exports.updateNafs = async(req,res) =>{
+  try {
+    const nafs =  await Nafs.findByIdAndUpdate(req.params._id, req.body, { new: true });
+    return res.json({data:nafs,msg:"nafs updated successfully"});
+ 
+} catch (error) {
+  return res.status(400).json(error);
+}
+}
+
+exports.viewNafs = async(req,res) => {
+  try {
+    const nafs =  await Nafs.findOne({_id:req.params._id});
+    return res.status(200).json({data:nafs})
+  } catch (error) {
+    return res.status(400).json(error)
+  }
+}

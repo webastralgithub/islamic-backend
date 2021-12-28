@@ -4,7 +4,6 @@ const UserSchema = new mongoose.Schema({
     name:{
         type:String,
         required:true,
-        min:6
     },
     email:{
         type:String,
@@ -22,12 +21,15 @@ const UserSchema = new mongoose.Schema({
         type:String,
     },
     birthday: { 
-        type: Date
+        type: String,
      },
     mobile_number:{
         type:String,
         required:true,
         min:6
+    },
+    address:{
+        type:String,
     },
     password:{
         type:String,
@@ -49,7 +51,22 @@ const UserSchema = new mongoose.Schema({
     status:{
         type:Boolean,
         default:0
-    }
+    },
+    profile_image:{
+        type:String,
+        default:'null'
+    },
+    subscription_type:{
+        type:String,
+        default:'null'
+    },
+    subscription_status:{
+        type:String,
+        default:0
+    },
+    subscription_date:{
+        type:Date
+    },
 });
 
 module.exports = mongoose.model('User',UserSchema)
